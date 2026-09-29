@@ -1,6 +1,6 @@
 import pandas as pd
 
-# FIFA POINTS DATA:
+# FIFA POINTS DATA
 
 df = pd.read_csv("data/blank.csv")
 points = pd.read_csv("data/points.csv")
@@ -14,7 +14,7 @@ df["Opp FIFA points"] = df["Opponent"].map(opp_lookup)
 print(df.describe())
 print(df.info())
 
-# GOALS SCORED AND CONCEDED DATA:
+# GOALS SCORED AND CONCEDED DATA
 
 # Using data from a GitHub repository to extract goals scored/conceded data in the past 12 months
 results = pd.read_csv("https://raw.githubusercontent.com/martj42/international_results/master/results.csv")
@@ -111,13 +111,33 @@ df = pd.merge_asof(
     right_on="last_match_date",
     by="Team",
     direction="backward",
-    allow_exact_matches=False #look for row with an earlier date
+    allow_exact_matches=False # look for row with an earlier date
 )
 
 df["Rest Days"] = (df["Date"] - df["last_match_date"]).dt.days
 
 # Restore the original ordering and remove unecessary columns
 df = df.sort_values("index").drop(["index", "last_match_date"], axis=1)
+
+# Get the opponent rest days
+opp_rest_days = df[["Date", "Team", "Rest Days"]].rename(columns={
+    "Team": "Opponent",
+    "Rest Days": "Opp Rest Days"
+})
+
+df = df.merge(
+    opp_rest_days,
+    on=["Date", "Opponent"],
+    how="left"
+)
+
+# Put the opponent rest days column after the rest days column
+cols = list(df.columns)
+cols.remove("Opp Rest Days")
+cols.insert(cols.index("Rest Days") + 1, "Opp Rest Days")
+df = df[cols]
+
+df = df.drop("Date", axis=1)
 
 # SAVE TO CSV
 
